@@ -1,5 +1,6 @@
 streamlit
+re
 whois
 langdetect
-googletrans==4.0.0-rc1
-pyarrow
+deep-translator
+

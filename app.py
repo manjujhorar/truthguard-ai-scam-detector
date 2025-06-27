@@ -2,7 +2,8 @@ import streamlit as st
 import re
 import whois
 from langdetect import detect
-from googletrans import Translator
+from deep_translator import GoogleTranslator
+
 
 def check_email(email):
     trusted_domains = ["gmail.com", "yahoo.com", "outlook.com"]
@@ -37,24 +38,21 @@ def get_whois_info(domain):
     except:
         return None
 
-translator = Translator()
+def translate(text, target_lang):
+    try:
+        return GoogleTranslator(source='auto', target=target_lang).translate(text)
+    except:
+        return text
 
-st.set_page_config(page_title="Jhorar AI – Scam Detector", layout="centered")
-st.title("🛡️ Jhorar AI – Scam Detector")
-st.write("Multilingual Email/Domain Scam Detector with Cybercrime Help")
+lang = detect(user_input)
+if lang != 'en':
+    prompt = translate(user_input, 'en')
+else:
+    prompt = user_input
 
-user_input = st.text_input("Enter an Email or Domain (e.g., hr@xyz.com):")
+def reply(text):
+    return translate(text, lang) if lang != 'en' else text
 
-if st.button("Check Now") and user_input:
-    lang = detect(user_input)
-    prompt = translator.translate(user_input, dest='en').text if lang != 'en' else user_input
-    result, reasons = is_email_fake(prompt)
-    domain_status = check_email(prompt)
-    domain_name = re.sub(r".*@", "", prompt) if "@" in prompt else prompt
-    wi = get_whois_info(domain_name)
-
-    def reply(text):
-        return translator.translate(text, dest=lang).text if lang != 'en' else text
 
     st.markdown(f"### {reply('Scan Result')}: {reply(result)}")
     for r in reasons:

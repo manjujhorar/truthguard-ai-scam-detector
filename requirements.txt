@@ -1,6 +1,6 @@
 streamlit
-re
-whois
 langdetect
 deep-translator
+python-whois
+
 

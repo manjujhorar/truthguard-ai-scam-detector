@@ -43,8 +43,10 @@ def translate(text, target_lang):
         return GoogleTranslator(source='auto', target=target_lang).translate(text)
     except:
         return text
+user_input = st.text_input("Enter an Email or Domain (e.g., hr@xyz.com):")
 
-lang = detect(user_input)
+if st.button("Check Now") and user_input:
+    lang = detect(user_input)
 if lang != 'en':
     prompt = translate(user_input, 'en')
 else:

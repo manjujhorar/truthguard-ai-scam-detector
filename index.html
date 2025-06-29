@@ -10,9 +10,13 @@
 
   <!-- HEADER -->
   <header>
-    <h1>{{ labels.title }}</h1>
-    <p class="subtext">{{ labels.header }}</p>
-    <p class="policy-note">✔️ Compliant with IT Act, IPC, GDPR | For awareness use only</p>
+    <h1>{{ labels.tool_name }}</h1> <!-- AI टूल का नाम -->
+  
+    <!-- AI-powered awareness tagline -->
+    <p class="subtext">{{ labels.header_tagline }}</p>
+  
+    <!-- Policy info -->
+    <p class="policy-note">✔️ Compliant with IT Act, IPC, GDPR | For awareness and educational use only</p>
 
     <!-- Language Dropdown -->
     <div class="language-selector" style="position: absolute; top: 10px; right: 10px;">
@@ -44,17 +48,24 @@
       <button type="submit">{{ labels.submit }}</button>
     </form>
 
-    {% if result %}
-    <div class="result">
-      <h3>{{ labels.result_label }}</h3>
-      <p class="result-message">{{ result }}</p>
-      <p class="ai-note">🤖 This is an AI-generated result. Please double-check before making final decisions.</p>
+  <!-- RESULT SECTION -->
+  {% if result %}
+    <div class="result-box">
+      <p>{{ result }}</p>
+
       {% if cybercrime_info %}
-        <p class="cyber">{{ labels.cyber_info }}</p>
+      <div class="cyber-info">
+        <strong>⚠️ Cybercrime Help:</strong>
+        <ul>
+          <li>📞 Helpline: 1930</li>
+          <li>✉️ Email: cybercrime.gov.in</li>
+          <li>🔗 Website: <a href="https://cybercrime.gov.in" target="_blank">cybercrime.gov.in</a></li>
+        </ul>
+      </div>
       {% endif %}
     </div>
-    {% endif %}
-  </section>
+  {% endif %}
+ 
 
   <!-- Tool Image -->
   <section class="tool-visual">

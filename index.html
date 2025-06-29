@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ labels.title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <h1>{{ labels.title }}</h1>
+    <p class="subtext">{{ labels.header }}</p>
+    <p class="policy-note">✔️ Compliant with IT Act, IPC, GDPR | For awareness use only</p>
+
+    <!-- Language Dropdown -->
+    <div class="language-selector" style="position: absolute; top: 10px; right: 10px;">
+      <label for="lang" style="color: white;">🌐 Language:</label>
+      <select id="lang" onchange="changeLanguage()" style="padding: 5px;">
+        <option value="en" {% if lang == 'en' %}selected{% endif %}>English</option>
+        <option value="hi" {% if lang == 'hi' %}selected{% endif %}>हिंदी</option>
+        <option value="ha" {% if lang == 'ha' %}selected{% endif %}>हरयाणवी</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- Consent Modal -->
+  <div id="consentModal" class="modal">
+    <div class="modal-content">
+      <h3>🔒 User Consent & Terms</h3>
+      <p>This tool follows IT Act, IPC, GDPR and does not store your data. Do you accept our policy?</p>
+      <button onclick="giveConsent('always')">Allow Always</button>
+      <button onclick="giveConsent('once')">Allow Once</button>
+      <button onclick="giveConsent('never')">Never</button>
+    </div>
+  </div>
+
+  <!-- Scan Form -->
+  <section id="scanForm">
+    <form method="POST">
+      <label>{{ labels.input_label }}</label><br>
+      <input type="text" name="email" placeholder="Enter to check..." required>
+      <button type="submit">{{ labels.submit }}</button>
+    </form>
+
+    {% if result %}
+    <div class="result">
+      <h3>{{ labels.result_label }}</h3>
+      <p class="result-message">{{ result }}</p>
+      <p class="ai-note">🤖 This is an AI-generated result. Please double-check before making final decisions.</p>
+      {% if cybercrime_info %}
+        <p class="cyber">{{ labels.cyber_info }}</p>
+      {% endif %}
+    </div>
+    {% endif %}
+  </section>
+
+  <!-- Tool Image -->
+  <section class="tool-visual">
+    <h2>🔐 Get free protection from all online scams like fake emails, fraud numbers, and social links.</h2>
+    <img src="{{ url_for('static', filename='how-it-works.png') }}" alt="AI Tool Working Image" class="centered-img">
+  </section>
+
+  <!-- Benefits -->
+<section class="benefits">
+  <h3>{{ labels['benefits_title'] }}</h3>
+  <ul>
+     <li>{{ labels['benefit_1'] }}</li>
+     <li>{{ labels['benefit_2'] }}</li>
+     <li>{{ labels['benefit_3'] }}</li>
+     <li>{{ labels['benefit_4'] }}</li>
+     <li>{{ labels['benefit_5'] }}</li>
+     <li>{{ labels['benefit_6'] }}</li>
+     <li>{{ labels['benefit_7'] }}</li>
+  </ul>
+</section>
+
+  <!-- Suggested Tools -->
+  <section class="tools">
+    <h3>Other AI Scam Detection Tools</h3>
+    <ul>
+      <li>🛡️ ScamAdviser</li>
+      <li>🛡️ Norton Safe Web</li>
+      <li>🛡️ VirusTotal</li>
+    </ul>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+        <p>Founder: Manju Jhorar | मंजू झोरड़</p>
+        <p>Created in 2025 | Contact: 8930765334 | Email: rjhorar514@gmail.com</p>
+        <p>Disclaimer: This tool provides basic scam detection and does not store any user data.</p>
+        <p><strong>Legal Policies Followed:</strong></p>
+        <ul style="list-style-type: square; padding-left: 20px; font-size: 14px;">
+          <li>Information Technology Act, 2000 (India)</li>
+          <li>Indian Penal Code (IPC)</li>
+          <li>General Data Protection Regulation (GDPR)</li>
+          <li>Cyber Crime Guidelines, Govt of India</li>
+          <li>AI Ethics & Transparency Principles</li>
+        </ul>
+    </footer>
+
+  <script>
+    function changeLanguage() {
+     const selectedLang = document.getElementById("lang").value;
+    window.location.href = "/?lang=" + selectedLang;
+    }
+
+    function giveConsent(choice) {
+      if (choice === 'never') {
+        alert("Permission not granted. App will not process input.");
+        document.getElementById('scanForm').style.display = "none";
+      }
+      document.getElementById("consentModal").style.display = "none";
+      localStorage.setItem("userConsent", choice);
+    }
+
+    window.onload = function () {
+      const consent = localStorage.getItem("userConsent");
+      if (!consent || consent === 'never') {
+        document.getElementById("consentModal").style.display = "flex";
+      } else {
+        document.getElementById("consentModal").style.display = "none";
+      }
+    }
+  </script>
+
+</body>
+</html>

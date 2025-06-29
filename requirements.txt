@@ -1,6 +1,1 @@
-streamlit
-langdetect
-deep-translator
-python-whois
-
-
+flask

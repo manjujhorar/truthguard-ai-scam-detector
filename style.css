@@ -10,12 +10,12 @@ body {
 header {
     background-color: #003366; /* Dark blue */
     color: white;
-    padding: 18px;
+    padding: 30px;
     text-align: center;
 }
 
 header .subtext {
-    font-size: 25px;
+    font-size: 20px;
     color: #ccf2ff;
 }
 .policy-note {
@@ -26,8 +26,13 @@ header .subtext {
 
 /* Language Selector */
 .language-selector {
-    margin-top: 10px;
-    text-align: center;
+  text-align: center;
+  margin: 15px 0;
+}
+
+.language-selector select {
+  padding: 10px;
+  font-size: 16px;
 }
 
 /* Form */
@@ -100,8 +105,8 @@ button[type="submit"]:hover {
 .benefits, .tools {
     text-align: center;
     margin: 20px auto;
-    width: 60%;
-    max-width: 700px;
+    width: 50%;
+    max-width: 600px;
     background-color: #e0f7ff; /* Sky blue */
     padding: 20px;
     border-radius: 10px;

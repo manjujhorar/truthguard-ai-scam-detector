@@ -1,32 +1,66 @@
 from flask import Flask, render_template, request
+import os
 import re
+from werkzeug.utils import secure_filename
+from PIL import Image
+import pytesseract
+from pdf2image import convert_from_path
 
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Trusted email domains (real company domains)
+ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
+
 official_domains = [
-    "gmail.com", "yahoo.com", "outlook.com", "airindia.com", "spicejet.com",
-    "indigo.in", "goindigo.in", "airvistara.com", "jetairways.com"
+    "gmail.com", "yahoo.com", "outlook.com",
+    "airindia.com", "spicejet.com", "indigo.in",
+    "goindigo.in", "airvistara.com", "jetairways.com"
 ]
 
-# Translations dictionary (same as you provided)
+verified_keywords = ['airindia.com', 'Government of India', 'IndiGo', 'Jet Airways', 'Ministry of', 'Air Vistara']
+
+indian_number_pattern = re.compile(r'^(?:\+91|91|0)?[6-9]\d{9}$')
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def check_number_validity(input_text):
+    number_pattern = re.compile(r'(\+91)?[6-9]\d{9}')
+    flagged_numbers = []
+
+    for match in re.finditer(number_pattern, input_text):
+        number = match.group()
+        clean_number = number[-10:]
+        if len(set(clean_number)) == 1:
+            flagged_numbers.append((number, "⚠️ Repeated digits – possible spam"))
+        else:
+            flagged_numbers.append((number, "ℹ️ Please verify this number on Truecaller"))
+
+    return flagged_numbers
+
+# 🌐 Translation Dictionary
 translations = {
     'en': {
-        'tool_name': "JHORAR AI – Scam Detector",  # ENGLISH में
-        'header_tagline': "Online scams are smarter than ever—but so are we. Get an advanced, AI-powered anti-scam tool that follows all rules and policies.",  # ENGLISH में
-        'input_label': "Enter email, number, or link",
+        'tool_name': "TRUTHGUARD AI – Scam Detector",
+        'header_tagline': "Online scams are smarter than ever—but so are we.",
+        'input_label': "Enter email or mobile number",
         'submit': "Check",
+        'upload_label': "Upload Offer Letter (PDF/JPG/PNG)",
+        'offer_title': "📝 Upload Offer Letter or Screenshot",
+        'offer_subtitle': "Check if your offer letter is real or fake (AI-based check)",
+        'upload_button': "Verify Offer Letter",
+        'offer_result': "Offer Letter Scan Result",
         'result': "Result",
-        'cybercrime_info': "🚨 If this appears suspicious, report to Cyber Crime India:\nPhone: 1930\nEmail: cybercrime.gov@nic.in\nWebsite: https://www.cybercrime.gov.in/",
-        'result_verified': "✅ This is a verified official email domain.",
-        'result_suspicious': "⚠️ This looks like a suspicious domain similar to official one.",
-        'result_fake': "❌ This email is likely FAKE. Do not trust. This is an AI-based tool. Please double check before final decision.",
-        'result_valid_number': "✅ This appears to be a valid Indian WhatsApp number.",
-        'result_invalid_number': "⚠️ This number is not in valid Indian WhatsApp format.",
-        'result_verified_social': "✅ This may be a verified social profile.",
-        'result_suspicious_social': "⚠️ This social link may be suspicious or unverified.",
-        'result_invalid': "⚠️ Unrecognized format. Please enter a valid email, number, or link.",
-        'benefits_title': "Benefits of Using JHORAR AI",
+        'cybercrime_info': "🚨 Suspicious? Report: 1930 | cybercrime.gov@nic.in",
+        'result_verified': "✅ This is a verified official email.",
+        'result_fake': "❌ This email may be FAKE. Do not trust it.",
+        'result_valid_number': "✅ Possibly valid Indian number (format matched).",
+        'result_invalid_number': "⚠️ Invalid number format or suspected pattern.",
+        'offer_real': "✅ This offer letter appears authentic and from verified source.",
+        'offer_fake': "⚠️ This offer letter seems suspicious or fake. Please verify manually.",
+        'offer_error': "❌ Could not scan the uploaded file. Error occurred.",
+        'benefits_title': "Benefits of Using TRUTHGUARD AI",
         'benefit_1': "✔️ Real-time scam detection",
         'benefit_2': "✔️ Multi-language awareness",
         'benefit_3': "✔️ 100% free educational tool",
@@ -39,72 +73,92 @@ translations = {
         'tool_2': "🛡️ Norton Safe Web",
         'tool_3': "🛡️ VirusTotal",
         'footer_disclaimer': "This tool provides basic scam detection and does not store any user data.",
-        'founder_line': "Founder: Manju Jhorar | Created: 2025 | Contact: 8930765334 | Email: rjhorar514@gmail.com"
+        'founder_line': "Founder: Manju Jhorar | 2025 | Contact: 8930765334",
+        'legal_1': "Information Technology Act, 2000 (India)",
+        'legal_2': "Indian Penal Code (IPC)",
+        'legal_3': "General Data Protection Regulation (GDPR)",
+        'legal_4': "Cyber Crime Guidelines, Govt of India",
+        'legal_5': "AI Ethics & Transparency Principles"
     },
     'hi': {
-        'tool_name': "झोरड़ एआई – स्कैम डिटेक्टर",
-        'header_tagline': "ऑनलाइन ठगी पहले से ज्यादा होशियार है—but अब हम भी। यह एक AI आधारित टूल है जो सभी नियमों का पालन करता है।",
-        'input_label': "ईमेल, नंबर, या लिंक दर्ज करें",
+        'tool_name': "ट्रुथगार्ड एआई – स्कैम डिटेक्टर",
+        'header_tagline': "ऑनलाइन ठगी पहले से होशियार है—but अब हम भी।",
+        'input_label': "ईमेल या मोबाइल नंबर दर्ज करें",
         'submit': "जांचें",
+        'upload_label': "ऑफर लेटर अपलोड करें (PDF/JPG/PNG)",
+        'offer_title': "📝 ऑफर लेटर या स्क्रीनशॉट अपलोड करें",
+        'offer_subtitle': "जांचें कि आपका ऑफर लेटर असली है या नकली (AI आधारित)",
+        'upload_button': "ऑफर लेटर जांचें",
+        'offer_result': "ऑफर लेटर स्कैन परिणाम",
         'result': "परिणाम",
-        'cybercrime_info': "🚨 यदि यह संदिग्ध लगे, तो साइबर क्राइम इंडिया में रिपोर्ट करें:\nफोन: 1930\nईमेल: cybercrime.gov@nic.in\nवेबसाइट: https://www.cybercrime.gov.in/",
-        'result_verified': "✅ यह एक सत्यापित आधिकारिक ईमेल डोमेन है।",
-        'result_suspicious': "⚠️ यह डोमेन किसी आधिकारिक डोमेन जैसा दिख रहा है, लेकिन संदिग्ध हो सकता है।",
-        'result_fake': "❌ यह ईमेल शायद फेक है। कृपया विश्वास न करें। यह एक एआई आधारित टूल है, कृपया अंतिम निर्णय से पहले डबल चेक करें।",
-        'result_valid_number': "✅ यह एक वैध भारतीय व्हाट्सएप नंबर प्रतीत होता है।",
-        'result_invalid_number': "⚠️ यह नंबर भारतीय व्हाट्सएप फॉर्मेट में नहीं है।",
-        'result_verified_social': "✅ यह एक सत्यापित सोशल प्रोफाइल हो सकती है।",
-        'result_suspicious_social': "⚠️ यह सोशल लिंक संदिग्ध या असत्यापित हो सकती है।",
-        'result_invalid': "⚠️ अमान्य प्रारूप। कृपया एक वैध ईमेल, नंबर या लिंक दर्ज करें।",
-        'benefits_title': "झोरड़ एआई के लाभ",
-        'benefit_1': "✔️ रियल-टाइम स्कैम डिटेक्शन",
+        'cybercrime_info': "🚨 संदिग्ध? रिपोर्ट करें: 1930 | cybercrime.gov@nic.in",
+        'result_verified': "✅ यह सत्यापित आधिकारिक ईमेल है।",
+        'result_fake': "❌ यह ईमेल फर्जी हो सकता है।",
+        'result_valid_number': "✅ यह एक वैध मोबाइल नंबर जैसा लग रहा है।",
+        'result_invalid_number': "⚠️ नंबर गलत है या पैटर्न संदिग्ध है।",
+        'offer_real': "✅ यह ऑफर लेटर असली लग रहा है।",
+        'offer_fake': "⚠️ यह ऑफर लेटर फर्जी हो सकता है। कृपया जांचें।",
+        'offer_error': "❌ अपलोड फाइल स्कैन नहीं हो पाई।",
+        'benefits_title': "ट्रुथगार्ड एआई के लाभ",
+        'benefit_1': "✔️ रियल टाइम स्कैम डिटेक्शन",
         'benefit_2': "✔️ बहुभाषा समर्थन",
-        'benefit_3': "✔️ 100% मुफ्त शैक्षिक टूल",
-        'benefit_4': "✔️ कोई उपयोगकर्ता डेटा संग्रहीत नहीं किया जाता",
-        'benefit_5': "✔️ व्हाट्सएप, ईमेल और लिंक स्कैनर",
-        'benefit_6': "✔️ फ्रॉड मिलने पर साइबर क्राइम जानकारी",
-        'benefit_7': "✔️ सभी नीतियों का पालन करता है",
-        'other_tools_title': "अन्य एआई स्कैम डिटेक्शन टूल",
-        'tool_1': "🛡️ स्कैमएडवाइज़र",
-        'tool_2': "🛡️ नॉर्टन सेफ वेब",
-        'tool_3': "🛡️ वायरस टोटल",
-        'footer_disclaimer': "यह टूल मूलभूत स्कैम डिटेक्शन प्रदान करता है और आपका डेटा संग्रहीत नहीं करता।",
-        'founder_line': "संस्थापक: मंजू झोरड़ | निर्माण वर्ष: 2025 | संपर्क: 8930765334 | ईमेल: rjhorar514@gmail.com"
+        'benefit_3': "✔️ 100% मुफ़्त टूल",
+        'benefit_4': "✔️ कोई यूजर डेटा स्टोर नहीं होता",
+        'benefit_5': "✔️ ईमेल, नंबर, लिंक स्कैनर",
+        'benefit_6': "✔️ फ्रॉड मिलने पर साइबर जानकारी",
+        'benefit_7': "✔️ सभी नीतियों के अनुरूप",
+        'other_tools_title': "अन्य AI स्कैम टूल",
+        'tool_1': "🛡️ ScamAdviser",
+        'tool_2': "🛡️ Norton Safe Web",
+        'tool_3': "🛡️ VirusTotal",
+        'footer_disclaimer': "यह टूल उपयोगकर्ता डेटा स्टोर नहीं करता।",
+        'founder_line': "संस्थापक: मंजू झोरड़ | 2025 | संपर्क: 8930765334",
+        'legal_1': "सूचना प्रौद्योगिकी अधिनियम, 2000 (भारत)",
+        'legal_2': "भारतीय दंड संहिता (IPC)",
+        'legal_3': "GDPR नीति",
+        'legal_4': "भारत सरकार के साइबर क्राइम दिशा-निर्देश",
+        'legal_5': "AI नैतिकता और पारदर्शिता सिद्धांत"
     },
     'ha': {
-        'tool_name': "झोरड़ एआई – ठगी पकड़न वाला टूल",
-        'header_tagline': "ऑनलाइन चोर अब चालाक हो लिए—but यो टूल और चालाक सै। ये AI टूल कानून के पूरे नियम मानै सै।",
-        'input_label': "ईमेल, नंबर या लिंक डालो",
+        'tool_name': "TRUTHGUARD एआई – ठगी पकड़न वाला टूल",
+        'header_tagline': "ऑनलाइन चोर अब चालाक हो लिए—but अब हम भी चालाक सै।",
+        'input_label': "ईमेल या नंबर डालो",
         'submit': "जांच करो",
+        'upload_label': "ऑफर लेटर चढ़ाओ (PDF/JPG/PNG)",
+        'offer_title': "📝 ऑफर लैटर या फोटो अपलोड करो",
+        'offer_subtitle': "देखो असली ऑफर लैटर है या नकली",
+        'upload_button': "ऑफर लैटर जांचो",
+        'offer_result': "ऑफर लैटर स्कैन का नतीजा",
         'result': "नतीजा",
-        'cybercrime_info': "🚨 यो संदिग्ध लागे तो साइबर क्राइम इंडिया म रिपोर्ट करो:\nफोन: 1930\nईमेल: cybercrime.gov@nic.in\nवेबसाइट: https://www.cybercrime.gov.in/",
-        'result_verified': "✅ यो एकदम सच्चा ऑफिशियल ईमेल लागे स।",
-        'result_suspicious': "⚠️ यो डोमेन ऑफिशियल जैसां लागे स, पर थोडा संदिग्ध स।",
-        'result_fake': "❌ यो ईमेल फर्जी स। भरोसा मत करियो। यो एक AI टूल स, पक्का करले पहले।",
-        'result_valid_number': "✅ यो एक सही इंडियन WhatsApp नंबर लागे स।",
-        'result_invalid_number': "⚠️ यो नंबर इंडिया वाला WhatsApp फॉर्मेट में ना स।",
-        'result_verified_social': "✅ यो प्रोफाइल असली लागे स।",
-        'result_suspicious_social': "⚠️ यो लिंक संदिग्ध हो सके स।",
-        'result_invalid': "⚠️ यो सही फॉर्मेट में ना स। सही ईमेल, नंबर या लिंक डालो।",
-        'benefits_title': "झोरड़ एआई के फायदे",
-        'benefit_1': "✔️ झटपट स्कैम पकड़ण",
-        'benefit_2': "✔️ कई भाषा में चलण",
-        'benefit_3': "✔️ बिलकुल फ्री टूल",
-        'benefit_4': "✔️ यूजर का डाटा स्टोर ना होवे",
-        'benefit_5': "✔️ WhatsApp, email, link जांचण वाला",
-        'benefit_6': "✔️ धोखा मिलते ही Cybercrime की जानकारी",
-        'benefit_7': "✔️ सारे कानून और नीति फॉलो करै",
-        'other_tools_title': "दुसरे स्कैम पकड़न वाले एआई टूल",
-        'tool_1': "🛡️ स्कैम एडवाइजर",
-        'tool_2': "🛡️ नॉर्टन सेफ वेब",
-        'tool_3': "🛡️ वायरस टोटल",
-        'footer_disclaimer': "यो टूल बेसिक स्कैम डिटेक्शन देवे सै, और डेटा सेव ना करे सै।",
-        'founder_line': "फाउंडर: मंजू झोरड़ | बणया गया: 2025 | कॉन्टैक्ट: 8930765334 | ईमेल: rjhorar514@gmail.com"
+        'cybercrime_info': "🚨 शक हो तो बताओ: 1930 | cybercrime.gov@nic.in",
+        'result_verified': "✅ यो ऑफिशियल ईमेल सै।",
+        'result_fake': "❌ यो ईमेल नकली लागे सै।",
+        'result_valid_number': "✅ यो नंबर बढ़िया लागे सै।",
+        'result_invalid_number': "⚠️ नंबर गड़बड़ लागे सै।",
+        'offer_real': "✅ यो ऑफर लैटर सही लागे सै।",
+        'offer_fake': "⚠️ यो लैटर नकली हो सके सै।",
+        'offer_error': "❌ फाइल समझ ना आई।",
+        'benefits_title': "TRUTHGUARD के फायदे",
+        'benefit_1': "✔️ फटाफट स्कैम पकड़ण",
+        'benefit_2': "✔️ भाषा सपोर्ट",
+        'benefit_3': "✔️ बिल्कुल फ्री टूल",
+        'benefit_4': "✔️ डेटा ना स्टोर होवे",
+        'benefit_5': "✔️ नंबर-ईमेल स्कैनर",
+        'benefit_6': "✔️ धोखा मिले तो रिपोर्ट",
+        'benefit_7': "✔️ नियम अनुसार टूल",
+        'other_tools_title': "दूसरे AI टूल",
+        'tool_1': "🛡️ ScamAdviser",
+        'tool_2': "🛡️ Norton Safe Web",
+        'tool_3': "🛡️ VirusTotal",
+        'footer_disclaimer': "डेटा स्टोर कोणी, साधारण जांच।",
+        'founder_line': "फाउंडर: मंजू झोरड़ | 2025 | मोबाइल: 8930765334",
+        'legal_1': "IT एक्ट 2000",
+        'legal_2': "भारतीय दंड संहिता (IPC)",
+        'legal_3': "GDPR",
+        'legal_4': "साइबर क्राइम गाइडलाइन",
+        'legal_5': "AI नीति और ईमानदारी"
     }
 }
-
-# Indian WhatsApp number pattern
-whatsapp_pattern = re.compile(r'(\+91[\d]{10}|0[\d]{10}|[\d]{10})')
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
@@ -114,44 +168,60 @@ def home():
     result = ""
     user_input = ""
     cybercrime_info = False
+    offer_text = ""
 
     if request.method == 'POST':
-        user_input = request.form['email']
+        if 'email' in request.form:
+            user_input = request.form['email'].strip()
 
-        if '@' in user_input:
-            domain = user_input.split('@')[-1]
-            if domain in official_domains:
-                result = labels['result_verified']
-            elif any(org in domain for org in ["spicejet", "airindia", "indigo"]):
-                result = labels['result_suspicious']
-                cybercrime_info = True
-            else:
-                result = labels['result_fake']
-                cybercrime_info = True
-
-        elif whatsapp_pattern.match(user_input):
-            if user_input.startswith("+91") or user_input.startswith("0") or len(user_input) == 10:
-                result = labels['result_valid_number']
+            if '@' in user_input:
+                domain = user_input.split('@')[-1]
+                if domain in official_domains:
+                    result = labels['result_verified']
+                else:
+                    result = labels['result_fake']
+                    cybercrime_info = True
+            elif indian_number_pattern.match(user_input):
+                number_results = check_number_validity(user_input)
+                result = "<br>".join(f"{num}: {note}" for num, note in number_results)
+                cybercrime_info = any("⚠️" in note for _, note in number_results)
             else:
                 result = labels['result_invalid_number']
                 cybercrime_info = True
 
-        elif "facebook.com" in user_input or "instagram.com" in user_input or "linkedin.com" in user_input:
-            if "official" in user_input or "verified" in user_input:
-                result = labels['result_verified_social']
-            else:
-                result = labels['result_suspicious_social']
-                cybercrime_info = True
-        else:
-            result = labels['result_invalid']
-            cybercrime_info = True
+        if 'offer_file' in request.files:
+            file = request.files['offer_file']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(path)
+
+                try:
+                    if filename.lower().endswith("pdf"):
+                        images = convert_from_path(path)
+                        for img in images:
+                            offer_text += pytesseract.image_to_string(img)
+                    else:
+                        img = Image.open(path)
+                        offer_text = pytesseract.image_to_string(img)
+
+                    if any(word.lower() in offer_text.lower() for word in verified_keywords):
+                        result = labels['offer_real']
+                    else:
+                        result = labels['offer_fake']
+                        cybercrime_info = True
+
+                except Exception:
+                    result = labels['offer_error']
+                    cybercrime_info = True
 
     return render_template("index.html",
+                           labels=labels,
+                           lang=lang,
                            result=result,
                            user_input=user_input,
                            cybercrime_info=cybercrime_info,
-                           labels=labels,
-                           lang=lang)
+                           offer_text=offer_text)
 
 if __name__ == '__main__':
     app.run(debug=True)

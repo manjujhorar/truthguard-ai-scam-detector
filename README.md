@@ -1,1 +1,1 @@
-# jhorar-flask-scam-detector
+# truthguard-flask-scam-detector

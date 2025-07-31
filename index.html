@@ -1,20 +1,42 @@
 <!DOCTYPE html>
 <html lang="{{ lang }}">
 <head>
+  <meta name="google-site-verification" content="kMCbi8Br2uSN6Stj2fS09s7rqvT-aNb6XDzddRx-FlI" />
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ labels.title }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+  <link rel="canonical" href="https://manjujhorar2002.pythonanywhere.com/">
+  <!-- SEO Meta Tags -->
+  <title>TRUTHGUARD AI – Scam Detector | Free Email, WhatsApp & link Fraud Checker</title>
+  <meta name="description" content="Use TRUTHGUARD AI, a free scam detection tool to verify email IDs, WhatsApp numbers, and social media links. Available in Hindi, English, Haryanvi. 100% free and privacy-friendly.">
+  <meta name="keywords" content="Scam detection, AI scam detector, fake email checker, WhatsApp fraud, TRUTHGUARD AI, cybercrime tool, scam alert India, free anti scam tool">
+  <meta name="author" content="Manju Jhorar">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "TRUTHGUARD AI – Scam Detector",
+    "url": "https://manjujhorar2002.pythonanywhere.com/",
+    "description": "Free scam detection tool to verify emails, WhatsApp numbers, and social media links with AI.",
+    "creator": {
+      "@type": "Person",
+      "name": "Manju Jhorar"
+    }
+  }
+  </script>
 </head>
 <body>
 
   <!-- HEADER -->
   <header>
-    <h1>{{ labels.tool_name }}</h1> <!-- AI टूल का नाम -->
-  
+    <h1>TRUTHGUARD AI – The Free Scam Detector</h1> <!-- AI टूल का नाम -->
+    <h2>Protect Yourself from Fake Job Emails, WhatsApp Frauds, and More</h2>
+
     <!-- AI-powered awareness tagline -->
     <p class="subtext">{{ labels.header_tagline }}</p>
-  
+
     <!-- Policy info -->
     <p class="policy-note">✔️ Compliant with IT Act, IPC, GDPR | For awareness and educational use only</p>
 
@@ -46,14 +68,46 @@
       <label>{{ labels.input_label }}</label><br>
       <input type="text" name="email" placeholder="Enter to check..." required>
       <button type="submit">{{ labels.submit }}</button>
+    </form
+
+  <!-- Upload Section -->
+  <section id="uploadOfferLetter" style="text-align: center; margin: 30px auto;">
+    <h2>📄 Upload Job Offer Letter (PDF/JPG/PNG)</h2>
+    <form method="POST" enctype="multipart/form-data">
+      <input type="file" name="offer_file" accept=".pdf,.jpg,.jpeg,.png" required>
+      <br><br>
+      <button type="submit" name="check_offer">Check Offer Letter</button>
     </form>
+  </section>
 
   <!-- RESULT SECTION -->
-  {% if result %}
-    <div class="result-box">
-      <p>{{ result }}</p>
+  {% if result or offer_result %}
+    {% if result %}
+      {% if "Carrier:" in result or "कैरियर" in result or "नेटवर्क" in result %}
+        <!-- ✅ GREEN styled operator result -->
+        <div class="result-box valid-operator-box">
+          <h2>{{ labels.result }}</h2>
+    .     <p>{{ result }}</p>
+        </div>
+      {% else %}
+        <!-- ⚠️ Standard result -->
+        <div class="result-box">
+          <h2>{{ labels.result }}</h2>
+          <p>{{ result }}</p>
+        </div>
+      {% endif %}
+    {% endif %}
 
-      {% if cybercrime_info %}
+    {% if offer_result %}
+      <!-- 📄 Offer Letter Check Result -->
+      <div class="result-box offer-result-box">
+        <h2>📄 Offer Letter Result</h2>
+        <p>{{ offer_result }}</p>
+      </div>
+    {% endif %}
+
+    {% if cybercrime_info %}
+      <!-- 🚨 Cybercrime Info -->
       <div class="cyber-info">
         <strong>⚠️ Cybercrime Help:</strong>
         <ul>
@@ -62,16 +116,19 @@
           <li>🔗 Website: <a href="https://cybercrime.gov.in" target="_blank">cybercrime.gov.in</a></li>
         </ul>
       </div>
-      {% endif %}
-    </div>
+    {% endif %}
   {% endif %}
- 
 
   <!-- Tool Image -->
   <section class="tool-visual">
     <h2>🔐 Get free protection from all online scams like fake emails, fraud numbers, and social links.</h2>
-    <img src="{{ url_for('static', filename='how-it-works.png') }}" alt="AI Tool Working Image" class="centered-img">
+    <img src="{{ url_for('static', filename='how-it-works.png') }}" alt="How TRUTHGUARD AI Scam Detector Works" class="centered-img">
   </section>
+  <div class="poster-section">
+    <img src="{{ url_for('static', filename='truthguard-ai-scam-detector-poster.png') }}" alt="TRUTHGUARD AI Scam Detector Poster" class="poster-img">
+    <p class="poster-caption">TRUTHGUARD AI – Scam Detector Tool<br>Check scam emails, WhatsApp numbers, and links using AI.</p>
+    <a href="{{ url_for('static', filename='truthguard-ai-scam-detector-poster.png') }}" download class="download-btn">⬇️ Download Poster</a>
+  </div>
 
   <!-- Benefits -->
 <section class="benefits">
@@ -110,6 +167,7 @@
           <li>Cyber Crime Guidelines, Govt of India</li>
           <li>AI Ethics & Transparency Principles</li>
         </ul>
+        <a href="/terms">Terms</a> | <a href="/privacy">Privacy Policy</a>
     </footer>
 
   <script>

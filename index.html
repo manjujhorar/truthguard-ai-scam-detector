@@ -68,26 +68,50 @@
       <label>{{ labels.input_label }}</label><br>
       <input type="text" name="email" placeholder="Enter to check..." required>
       <button type="submit">{{ labels.submit }}</button>
-    </form
+    </form>
+  </section>
 
   <!-- Upload Section -->
   <section id="uploadOfferLetter" style="text-align: center; margin: 30px auto;">
     <h2>📄 Upload Job Offer Letter (PDF/JPG/PNG)</h2>
     <form method="POST" enctype="multipart/form-data">
-      <input type="file" name="offer_file" accept=".pdf,.jpg,.jpeg,.png" required>
+    <input type="file" name="offer_file" accept=".pdf,.jpg,.jpeg,.png,.mp3,.wav" required>
       <br><br>
       <button type="submit" name="check_offer">Check Offer Letter</button>
+    </form>
+    <form method="POST">
+     <label>Paste your message here:</label><br>
+     <textarea name="user_message" rows="5" cols="40"></textarea><br>
+     <button type="submit">Check Message</button>
     </form>
   </section>
 
   <!-- RESULT SECTION -->
   {% if result or offer_result %}
     {% if result %}
-      {% if "Carrier:" in result or "कैरियर" in result or "नेटवर्क" in result %}
+      {% if "Carrier:" in result %}
         <!-- ✅ GREEN styled operator result -->
-        <div class="result-box valid-operator-box">
-          <h2>{{ labels.result }}</h2>
-    .     <p>{{ result }}</p>
+        <div style="text-align: center; margin-top: 20px;">
+          <div class="result-box valid-operator-box">
+            <h2>{{ labels.result }}</h2>
+            <p>{{ result }}</p>
+          </div>
+        </div>
+      {% elif "कैरियर" in result %}
+        <!-- ✅ GREEN styled operator result (Hindi) -->
+        <div style="text-align: center; margin-top: 20px;">
+          <div class="result-box valid-operator-box">
+            <h2>{{ labels.result }}</h2>
+            <p>{{ result }}</p>
+          </div>
+        </div>
+      {% elif "नेटवर्क" in result %}
+        <!-- ✅ GREEN styled operator result (Haryanvi/Hindi) -->
+        <div style="text-align: center; margin-top: 20px;">
+          <div class="result-box valid-operator-box">
+            <h2>{{ labels.result }}</h2>
+            <p>{{ result }}</p>
+          </div>
         </div>
       {% else %}
         <!-- ⚠️ Standard result -->
@@ -127,26 +151,26 @@
   <div class="poster-section">
     <img src="{{ url_for('static', filename='truthguard-ai-scam-detector-poster.png') }}" alt="TRUTHGUARD AI Scam Detector Poster" class="poster-img">
     <p class="poster-caption">TRUTHGUARD AI – Scam Detector Tool<br>Check scam emails, WhatsApp numbers, and links using AI.</p>
-    <a href="{{ url_for('static', filename='truthguard-ai-scam-detector-poster.png') }}" download class="download-btn">⬇️ Download Poster</a>
+    <a href="{{ url_for('static', filename='truthguard-ai-scam-detector-poster.png') }}" download class="download-btn">{{ download_poster }}</a>
   </div>
 
   <!-- Benefits -->
-<section class="benefits">
+  <section class="benefits">
   <h3>{{ labels['benefits_title'] }}</h3>
-  <ul>
-     <li>{{ labels['benefit_1'] }}</li>
-     <li>{{ labels['benefit_2'] }}</li>
-     <li>{{ labels['benefit_3'] }}</li>
-     <li>{{ labels['benefit_4'] }}</li>
-     <li>{{ labels['benefit_5'] }}</li>
-     <li>{{ labels['benefit_6'] }}</li>
-     <li>{{ labels['benefit_7'] }}</li>
-  </ul>
-</section>
+    <ul>
+       <li>{{ labels['benefit_1'] }}</li>
+       <li>{{ labels['benefit_2'] }}</li>
+       <li>{{ labels['benefit_3'] }}</li>
+       <li>{{ labels['benefit_4'] }}</li>
+       <li>{{ labels['benefit_5'] }}</li>
+       <li>{{ labels['benefit_6'] }}</li>
+       <li>{{ labels['benefit_7'] }}</li>
+    </ul>
+  </section>
 
   <!-- Suggested Tools -->
   <section class="tools">
-    <h3>Other AI Scam Detection Tools</h3>
+    <h3>{{ labels['other_tools_title'] }}</h3>
     <ul>
       <li>🛡️ ScamAdviser</li>
       <li>🛡️ Norton Safe Web</li>
@@ -159,7 +183,7 @@
         <p>Founder: Manju Jhorar | मंजू झोरड़</p>
         <p>Created in 2025 | Contact: 8930765334 | Email: rjhorar514@gmail.com</p>
         <p>Disclaimer: This tool provides basic scam detection and does not store any user data.</p>
-        <p><strong>Legal Policies Followed:</strong></p>
+        <p><strong>{{ labels['legal_heading'] }}</strong></p>
         <ul style="list-style-type: square; padding-left: 20px; font-size: 14px;">
           <li>Information Technology Act, 2000 (India)</li>
           <li>Indian Penal Code (IPC)</li>
@@ -168,7 +192,7 @@
           <li>AI Ethics & Transparency Principles</li>
         </ul>
         <a href="/terms">Terms</a> | <a href="/privacy">Privacy Policy</a>
-    </footer>
+  </footer>
 
   <script>
     function changeLanguage() {
